@@ -1,0 +1,8 @@
+# compiled files
+__pycache__/
+
+# databases
+*.sqlite3
+
+# swp
+*.swp

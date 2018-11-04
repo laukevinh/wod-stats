@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+{% load static %}
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="{% static 'main.css' %}">
+<title>WOD Stats Home</title>
+
+<!--
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+<link rel="stylesheet" href="/resources/demos/style.css">
+<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+<script>
+    $( function() {
+        $( "#datepicker" ).datepicker();
+    } );
+</script>
+-->
+
+</head>
+
+<body>
+    <div class="navbar">
+        <ul>
+            <li><a href="{% url 'home' %}">Fitjstats</a>
+        </ul>
+    </div>
+    <div class="container">
+    <div id="input" class="header" autocomplete="off">
+        <form action="{% url 'search' %}">
+            Date: 
+            <input type="text" name="YYYY" placeholder="YYYY" value="{{ YYYY }}">
+            <input type="text" name="MM" placeholder="MM" value="{{ MM }}">
+            <input type="text" name="DD" placeholder="DD" value="{{ DD }}">
+            <!--
+            <input type="text" id="datepicker" placeholder="MM/DD/YYYY" 
+                {% if YYYY and MM and DD %}
+                value="{{ MM }}/{{ DD }}/{{ YYYY }}"
+                {% endif %}
+            >
+            -->
+            <button class="btn-med" type="submit" formmethod="GET">Submit</button>
+            <button class="btn-med" onclick="showToday()">Today</button>
+        </form>
+    </div>
+
+    <div id="today"></div>
+    <div id="calendar"></div>
+
+    <!--
+    <div id="control">
+        <button onclick="showCalendar()">Calendar</button>
+        <button onclick="getUrl()">URL</button>
+    </div>
+    -->
+
+    <div id="comments" class=""> {% block content %}{% endblock content %} </div>
+    </div> <!--container-->
+
+</body>
+
+<script type="text/javascript" src="{% static 'crawl.js' %}"></script>
+<!--<script type="text/javascript" src="crawl.js"></script>-->
+
+</html>

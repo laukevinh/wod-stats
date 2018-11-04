@@ -1,0 +1,34 @@
+{% extends "./home.html" %}
+{% block content %}
+
+<div class="header">
+    <div id="wod">original: <a href="{{ url }}" target="_blank">{{ url }}</a></div>
+    <ul class="results">
+        <li>total rx: {{ rx }}</li>
+        <li>total males: {{ m }}</li>
+        <li>total females: {{ f }}</li>
+    </ul>
+</div>
+
+<div class="row">
+{% for detail in details %}
+    <div class="card collapsed" onclick="flex(this)">
+        <div class="card-padding">
+            <div class="col-8">
+            <li>{{ detail.comment }}</li>
+            </div>
+
+            <div class="col-2">
+            <li>{{ detail.rx }}</li>
+            </div>
+
+            <div class="col-2">
+            <li>{{ detail.gender }}</li>
+            </div>
+        </div>
+    </div>
+{% endfor %}
+</div> <!--row-->
+
+{% endblock content %}
+
