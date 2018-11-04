@@ -80,10 +80,6 @@
     background-color: #AF1E1C;
 }
     
-.container {
-    margin: 14px 1.25em;
-}
-
 body {
     margin: 0px;
     font-family: sans-serif;
@@ -92,7 +88,25 @@ body {
 ul.results {
     list-style: none;
     margin: 0px;
-    padding: 0px;
+    padding: 0.75em 0px;
+    display: flex;
+    text-align: center;
+}
+
+ul.results li{
+    margin-right: 0.75em;
+    padding: 1em;
+    border: 1px solid #c8c8c8;
+    border-radius: 0.25rem;
+}
+
+ul.results li .val {
+    font-size: 1.5em;
+}
+
+ul.results li .desc {
+    font-size: 0.75em;
+    color: #444;
 }
 
 #wod {
@@ -121,13 +135,28 @@ ul.results {
     flex-wrap: wrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    width: 100%;
+}
+
+.card-padding li {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    list-style: none;
+}
+
+.stat {
+    text-align: center;
 }
 
 .header {
-    margin-top: 24px;
-    margin-bottom: 24px;
+    margin: 24px 1.25em;
 }
 
+.card.title {
+    border: 0px;
+    background-color: #316a94;
+    color: white;
+}
 
 .btn-med, .btn-med:active {
     color: white;
@@ -146,19 +175,30 @@ ul.results {
     background-color: #AF1E1C;
 }
 
+.comments {
+    padding: 1.25em;
+}
 
 input[type="text"] {
     margin: 2px 0px;
 }
 
-@media only screen and (max-width:744px) {
-    #input *{
+@media only screen and (max-width:749px) {
+    #input {
         width: 180px;
     }
-}
-
-@media only screen and (min-width:745px) {
-    #input {
+    .container {
         width: 100%;
     }
 }
+
+@media only screen and (min-width:750px) {
+    #input {
+        width: 100%;
+    }
+    .container {
+        width: 750px;
+        margin: 14px auto;
+    }
+}
+

@@ -4,13 +4,39 @@
 <div class="header">
     <div id="wod">original: <a href="{{ url }}" target="_blank">{{ url }}</a></div>
     <ul class="results">
-        <li>total rx: {{ rx }}</li>
-        <li>total males: {{ m }}</li>
-        <li>total females: {{ f }}</li>
+        <li>
+            <div class="val">{{ rx }}</div>
+            <div class="desc">total rx</div>
+        </li>
+        <li>
+            <div class="val">{{ m }}</div>
+            <div class="desc">total males</div>
+        </li>
+        <li>
+            <div class="val">{{ f }}</div>
+            <div class="desc">total females</div>
+        </li>
     </ul>
 </div>
 
-<div class="row">
+<div class="comments">
+
+<div class="card title">
+    <div class="card-padding">
+        <div class="col-8">
+        <li>comment</li>
+        </div>
+
+        <div class="col-2">
+        <li class="stat">rx</li>
+        </div>
+
+        <div class="col-2">
+        <li class="stat">gender</li>
+        </div>
+    </div>
+</div>
+
 {% for detail in details %}
     <div class="card collapsed" onclick="flex(this)">
         <div class="card-padding">
@@ -19,16 +45,16 @@
             </div>
 
             <div class="col-2">
-            <li>{{ detail.rx }}</li>
+            <li class="stat">{{ detail.rx }}</li>
             </div>
 
             <div class="col-2">
-            <li>{{ detail.gender }}</li>
+            <li class="stat">{{ detail.gender }}</li>
             </div>
         </div>
     </div>
 {% endfor %}
-</div> <!--row-->
+</div> <!--comments-->
 
 {% endblock content %}
 
