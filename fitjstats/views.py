@@ -21,14 +21,9 @@ BASE_URL = ("https://crossfit.com/"
             + "workout/"
             + "{year}/{month}/{day}")
     
+EARLIEST_DATE = datetime.date(2001, 2, 1)
 
 def build_url(YYYY, MM, DD, option=API):
-    if len(MM) < 2:
-        MM = "0{}".format(MM)
-    if len(DD) < 2:
-        DD = "0{}".format(DD)
-    if len(YYYY) < 4:
-        YYYY = "20{}".format(YYYY)
     return BASE_URL[option].format(year=YYYY, month=MM, day=DD)
 
 # Create your views here.
@@ -40,9 +35,9 @@ def summarize(page):
     try:
         data = json.loads(page)
     except TypeError as e:
-        print("THere's an error {}".format(e))
+        raise e
     else:
-        result = {
+        context = {
             'len': len(data),
             'm': 0,
             'f': 0,
@@ -50,7 +45,7 @@ def summarize(page):
             'details': [],
             }
 
-        for i in range(result['len']):
+        for i in range(context['len']):
             comment = data[i]['commentText'].lower()
             rx = RE_RX.search(comment)
             gender = RE_GENDER.search(comment)
@@ -62,29 +57,38 @@ def summarize(page):
                 }
 
             if rx is not None:
-                result['rx'] += 1
+                context['rx'] += 1
                 detail['rx'] = rx.group(1)
             if gender is not None:
-                result[gender.group(1)] += 1
+                context[gender.group(1)] += 1
                 detail['gender'] = gender.group(1)
 
-            result['details'].append(detail)
+            context['details'].append(detail)
 
-        return result
+        return context
     
+def get_valid_date(request):
+    today = datetime.date.today()
+    YYYY = request.GET.get('YYYY', str(today.year))
+    MM   = request.GET.get('MM', str(today.month))
+    DD   = request.GET.get('DD', str(today.day))
+    date = datetime.date(int(YYYY),int(MM),int(DD))
+    if date < EARLIEST_DATE or date > today:
+        raise ValueError("Date must be between Feb 1, 2001 and today")
+    return ("{:0>4}".format(YYYY), "{:0>2}".format(MM), "{:0>2}".format(DD))
+
 def search(request):
     if request.method == 'GET':
-        today = datetime.date.today()
-        YYYY = request.GET.get('YYYY', str(today.year))
-        MM   = request.GET.get('MM', str(today.month))
-        DD   = request.GET.get('DD', str(today.day))
-        with urllib.request.urlopen(build_url(YYYY, MM, DD)) as resp:
+        try:
+            date = get_valid_date(request)
+        except ValueError as invalid_date:
+            return HttpResponse(invalid_date)
+
+        with urllib.request.urlopen(build_url(*date, API)) as resp:
             page = resp.read().decode('utf-8')
             context = summarize(page)
-            context['url'] = build_url(YYYY, MM, DD, REG)
-            context['YYYY'] = YYYY
-            context['MM'] = MM
-            context['DD'] = DD
+            context['url'] = build_url(*date, REG)
+            context['date'] = date
             return HttpResponse(loader.get_template('comments.html')\
                 .render(context, request))
     return HttpResponse("Failed")
