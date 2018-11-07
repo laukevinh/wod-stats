@@ -1,9 +1,9 @@
 from django.db import models
 
 class Workout(mondels.Model):
-    title = models.CharField()
+    title = models.CharField(default="")
     description = models.CharField()
-    tags = models.CharField()
+    tags = models.CharField(default="")
 
 class Post(models.Model):
     workout = models.ForeignKey(Workout, on_delete=models.CASCADE)
@@ -33,14 +33,14 @@ class Comment(models.Model):
     comment_text = models.CharField()
     scale = models.CharField(choices=SCALE_CHOICES)
     gender = models.CharField(choices=GENDER_CHOICES)
-    raw_score = models.CharField()
-    score = models.IntegerField()
-    height = models.IntegerField()
-    weight = models.IntegerField()
-    age = models.IntegerField()
+    raw_score = models.CharField(default="")
+    score = models.IntegerField(null=True)
+    height = models.IntegerField(null=True)
+    weight = models.IntegerField(null=True)
+    age = models.IntegerField(null=True)
 
 class Commenter(models.Model):
-    first_name = models.CharField() 
-    last_name = models.CharField() 
+    first_name = models.CharField(default="") 
+    last_name = models.CharField(default="") 
     picture_url = models.URLField()
     created = models.DateField()
