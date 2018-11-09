@@ -26,6 +26,8 @@ BASE_URL = ("https://crossfit.com/"
     
 EARLIEST_DATE = datetime.date(2001, 2, 1)
 
+_cache = dict()
+
 def build_url(YYYY, MM, DD, option=API):
     return BASE_URL[option].format(year=YYYY, month=MM, day=DD)
 
@@ -163,8 +165,11 @@ def add_comments(context):
         )
         comment.save()
 
-def cache_responds():
-    return False
+def cache(context):
+    _cache[context['date']] = [context, 0]
+
+def cache_responds(date):
+    return  _cache.get(date)    
 
 def db_responds(date):
     post = Post.objects.filter(created=datetime.date(*date))
@@ -183,8 +188,13 @@ def search(request):
         except ValueError as invalid_date:
             return HttpResponse(invalid_date)
 
-        if cache_responds():
-            pass
+        if cache_responds(date):
+            context_wrapper = cache_responds(date)
+            context_wrapper[1] += 1
+            context = context_wrapper[0]
+            print("CACHE HIT************\n\n")
+            return HttpResponse(loader.get_template('comments.html')\
+                .render(context, request))
         elif db_responds(date):
             post = db_responds(date)
             context = {
@@ -197,14 +207,16 @@ def search(request):
                 'details': post.comment_set.all(),
             }
             print("DB HIT************\n\n")
+            cache(context)
+            print("Add to cache\n\n")
             return HttpResponse(loader.get_template('comments.html')\
                 .render(context, request))
-
         else:
             context = get_new_data(build_url(*date, API))
             context['url'] = build_url(*date, REG)
             context['date'] = date
             add_comments(context)
+            cache(context)
             return HttpResponse(loader.get_template('comments.html')\
                 .render(context, request))
 
