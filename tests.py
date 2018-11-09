@@ -1,6 +1,7 @@
 import unittest
 
-from fitjstats.views import build_url, RE_RX, RE_GENDER
+from fitjstats.views import build_url, RE_RX, RE_SCALE, RE_GENDER
+from fitjstats.views import get_datetime, get_new_data, add_comments
 from fitjstats import settings
 
 class TestCrawler(unittest.TestCase):
@@ -47,6 +48,28 @@ class TestCrawler(unittest.TestCase):
         for cmt in cmts:
             self.assertTrue(RE_RX.search(cmt) is None)
 
+    def test_scale_exists_at_start_of_str(self):
+        cmt = "Scaled it 19:20"
+        self.assertTrue(RE_SCALE.search(cmt).group(1) == 'Scale')
+        
+    def test_scale_exists_in_mid_of_str(self):
+        cmt = "I scaled it 19:20"
+        self.assertTrue(RE_SCALE.search(cmt).group(1) == 'scale')
+
+    def test_scale_exists_at_end_of_str(self):
+        cmt = "19:20 scaled."
+        self.assertTrue(RE_SCALE.search(cmt).group(1) == 'scale')
+
+    def test_scale_not_in_str(self):
+        cmts = ['made up string scaleb',
+                'made up string scales',
+                'scales well with',
+                'rescale sum',
+            ]
+        for cmt in cmts:
+            self.assertTrue(RE_SCALE.search(cmt) is None)
+        
+
     def test_gender_exists_at_start_of_str(self):
         cmt = "m38/5'8/165\n\nas rx'd 35:02"
         self.assertTrue(RE_GENDER.search(cmt).group(1) == 'm')
@@ -87,6 +110,42 @@ class TestCrawler(unittest.TestCase):
         not_rx = "did 200 single unders instead, rest as rx'd-35:20"
         pass
 
+    def test_get_datetime(self):
+        dt = "2018-11-04T10:18:29+0000"
+        self.assertTrue([2018, 11, 4, 10, 18, 29] == get_datetime(dt))
 
-if __name__ == '__main__':
-    unittest.main()
+    def test_get_context(self):
+        context = get_new_data(
+            "https://crossfit.com/comments/" \
+            + "api/v1/topics/mainsite." \
+            + "20180101/comments"
+        )
+        detail = context['details'][1]
+        self.assertTrue(
+            detail['comment_text'] == "Well that was an interesting article and not at all surprising. For big corp it's really the only logical step to keep the big money ball rolling and doing what worked in first world countries for so long. Sad that the world is so corrupt.".lower()
+        )
+        self.assertTrue(
+            detail['created'] == "2018-01-01T02:42:58+0000"
+        )
+        self.assertTrue(
+            detail['commenter']['first_name'] == "Nathan"
+        )
+        self.assertTrue(
+            detail['commenter']['last_name'] == "Jones"
+        )
+        self.assertTrue(
+            detail['commenter']['picture_url'] == 
+            "https://profilepicsbucket.crossfit.com/fbe15-P241707_7-184.jpg"
+        )
+        self.assertTrue(
+            detail['commenter']['created'] == "2016-03-30T18:23:58+0000"
+        )
+
+    def test_add_comments(self):
+        context = get_new_data(
+            "https://crossfit.com/comments/" \
+            + "api/v1/topics/mainsite." \
+            + "20180101/comments"
+        )
+        context['date'] = (2018, 1, 1)
+        context['url'] = build_url(2018, 1, 1, 1)

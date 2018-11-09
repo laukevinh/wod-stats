@@ -5,15 +5,15 @@
     <div id="wod">original: <a href="{{ url }}" target="_blank">{{ url }}</a></div>
     <ul class="results">
         <li>
-            <div class="val">{{ rx }}</div>
+            <div class="val">{{ num_rx }}</div>
             <div class="desc">total rx</div>
         </li>
         <li>
-            <div class="val">{{ m }}</div>
+            <div class="val">{{ num_male }}</div>
             <div class="desc">total males</div>
         </li>
         <li>
-            <div class="val">{{ f }}</div>
+            <div class="val">{{ num_female }}</div>
             <div class="desc">total females</div>
         </li>
     </ul>
@@ -41,11 +41,11 @@
     <div class="card collapsed" onclick="flex(this)">
         <div class="card-padding">
             <div class="col-8">
-            <li>{{ detail.comment }}</li>
+            <li>{{ detail.comment_text }}</li>
             </div>
 
             <div class="col-2">
-            <li class="stat">{{ detail.rx }}</li>
+            <li class="stat">{{ detail.scale }}</li>
             </div>
 
             <div class="col-2">
