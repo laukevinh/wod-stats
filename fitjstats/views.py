@@ -42,27 +42,32 @@ def summarize(page):
     except TypeError as e:
         raise e
     else:
-        context = {
+        post = {
             'num_comments': len(data),
             'num_male': 0,
             'num_female': 0,
             'num_rx': 0,
             'num_scale': 0,
-            'details': [],
-            }
+        }
 
-        for i in range(context['num_comments']):
-            comment = data[i]['commentText'].lower()
-            commenter = data[i]['commenter']
-            rx = RE_RX.search(comment)
-            scale = RE_SCALE.search(comment)
-            gender = RE_GENDER.search(comment)
+        details = []
+
+        for i in range(post['num_comments']):
+
+            comment = data[i]
+
+            comment_text = comment['commentText'].lower()
+            commenter = comment['commenter']
+
+            rx = RE_RX.search(comment_text)
+            scale = RE_SCALE.search(comment_text)
+            gender = RE_GENDER.search(comment_text)
 
             detail = {
-                'comment_text': comment, 
+                'comment_text': comment_text, 
                 'scale': None, 
                 'gender': None,
-                'created': data[i]['created'],
+                'created': comment['created'],
                 'commenter': {
                     'first_name': commenter.get('firstName'),
                     'last_name': commenter.get('lastName'),
@@ -72,20 +77,25 @@ def summarize(page):
             }
 
             if rx is not None:
-                context['num_rx'] += 1
+                post['num_rx'] += 1
                 detail['scale'] = rx.group(1)
             elif scale is not None:
-                context['num_scale'] += 1
+                post['num_scale'] += 1
                 detail['scale'] = scale.group(1)
 
             if gender is not None:
                 if 'm' in gender.group(1):
-                    context['num_male'] += 1
+                    post['num_male'] += 1
                 else:
-                    context['num_female'] += 1
+                    post['num_female'] += 1
                 detail['gender'] = gender.group(1)
 
-            context['details'].append(detail)
+            details.append(detail)
+
+        context = {
+            'post': post,
+            'details': details,
+        }
 
         return context
     
@@ -126,21 +136,21 @@ def add_comments(context):
         workout = workout,
         created = datetime.date(*context['date']),
         url = context['url'],
-        num_comments = len(context['details']),
-        num_male = context['num_male'],
-        num_female = context['num_female'],
-        num_rx = context['num_rx'],
-        num_scale = context['num_scale']
+        num_comments = context['post']['num_comments'],
+        num_male = context['post']['num_male'],
+        num_female = context['post']['num_female'],
+        num_rx = context['post']['num_rx'],
+        num_scale = context['post']['num_scale']
     )
     post.save()
 
-    for i in range(len(context['details'])):
+    for i in range(post.num_comments):
 
         detail = context['details'][i]
             
         commenter = Commenter(
-            first_name = detail['commenter']['first_name'],
-            last_name = detail['commenter']['last_name'],
+            first_name = detail['commenter']['first_name'] or "",
+            last_name = detail['commenter']['last_name'] or "",
             picture_url = detail['commenter']['picture_url'],
             created = datetime.datetime(
                 *get_datetime(detail['commenter']['created'])
