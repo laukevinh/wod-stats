@@ -79,16 +79,16 @@ def new_comment(post, commenter, comment_text, created):
         age = None
     )
 
-def process_comment(post, comment, comment_text):
-    rx = RE_RX.search(comment_text)
-    scale = RE_SCALE.search(comment_text)
-    gender = RE_GENDER.search(comment_text)
+def process_comment(comment):
+    rx = RE_RX.search(comment.comment_text)
+    scale = RE_SCALE.search(comment.comment_text)
+    gender = RE_GENDER.search(comment.comment_text)
     
     if scale is not None:
-        post.num_scale += 1
+        comment.post.num_scale += 1
         comment.scale = scale.group(1).lower()
     elif rx is not None:
-        post.num_rx += 1
+        comment.post.num_rx += 1
         comment.scale = rx.group(1).lower()
     else:
         comment.scale = None
@@ -96,9 +96,9 @@ def process_comment(post, comment, comment_text):
     if gender is not None:
         comment.gender = gender.group(1).lower()
         if 'm' in comment.gender:
-            post.num_male += 1
+            comment.post.num_male += 1
         elif 'f' in comment.gender:
-            post.num_female += 1
+            comment.post.num_female += 1
     else:
         comment.gender = None
 
@@ -123,7 +123,7 @@ def summarize(page, date):
             created = entry['created']
 
             comment = new_comment(post, commenter, comment_text, created)
-            process_comment(post, comment, comment_text)
+            process_comment(comment)
             comment.save()
 
         post.save()
