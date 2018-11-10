@@ -32,9 +32,9 @@
     <div id="input" class="header">
         <form action="{% url 'search' %}">
             Date: 
-            <input type="text" name="YYYY" placeholder="YYYY" value="{{ date.0 }}" autocomplete="off">
-            <input type="text" name="MM" placeholder="MM" value="{{ date.1 }}" autocomplete="off">
-            <input type="text" name="DD" placeholder="DD" value="{{ date.2 }}" autocomplete="off">
+            <input type="text" name="YYYY" placeholder="YYYY" value="{{ post.created.year }}" autocomplete="off">
+            <input type="text" name="MM" placeholder="MM" value="{{ post.created.month }}" autocomplete="off">
+            <input type="text" name="DD" placeholder="DD" value="{{ post.created.day }}" autocomplete="off">
             <!--
             <input type="text" id="datepicker" placeholder="MM/DD/YYYY" 
                 {% if YYYY and MM and DD %}

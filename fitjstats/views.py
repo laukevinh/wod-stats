@@ -28,73 +28,112 @@ EARLIEST_DATE = datetime.date(2001, 2, 1)
 
 _cache = dict()
 
-def build_url(YYYY, MM, DD, option=API):
-    return BASE_URL[option].format(year=YYYY, month=MM, day=DD)
+def build_url(date, option=API):
+    return BASE_URL[option].format(
+        year=date.year, 
+        month=date.month, 
+        day=date.day
+    )
 
 # Create your views here.
 def home(request):
     template = loader.get_template('home.html')
     return HttpResponse(template.render({}, request))
 
-def summarize(page):
+def new_workout(context):
+    return Workout(
+            title = context,
+            description = context,
+            tags = "",
+        )
+
+def new_post(workout, date, num_comments):
+    return Post(
+        workout = workout,
+        created = date,
+        url = build_url(date, REG),
+        num_comments = num_comments,
+        num_male = 0,
+        num_female = 0,
+        num_rx = 0,
+        num_scale = 0,
+    )
+
+def new_commenter(raw_commenter):
+    return Commenter(
+            first_name = raw_commenter.get('first_name') or "",
+            last_name = raw_commenter.get('last_name') or "",
+            picture_url = raw_commenter.get('picture_url') or "",
+            created = datetime.datetime(
+                *get_datetime(raw_commenter['created'])
+            )
+        )
+
+def summarize(page, url, date):
     try:
         data = json.loads(page)
     except TypeError as e:
         raise e
     else:
-        post = {
-            'num_comments': len(data),
-            'num_male': 0,
-            'num_female': 0,
-            'num_rx': 0,
-            'num_scale': 0,
-        }
+        workout = new_workout(url)
+        workout.save()
 
-        details = []
+        post = new_post(workout, date, len(data))
+        post.save()
 
-        for i in range(post['num_comments']):
+        for i in range(post.num_comments):
 
-            comment = data[i]
+            raw_comment = data[i]
 
-            comment_text = comment['commentText'].lower()
-            commenter = comment['commenter']
+            commenter = new_commenter(raw_comment['commenter'])
+            commenter.save()
+
+            comment_text = raw_comment['commentText']
 
             rx = RE_RX.search(comment_text)
             scale = RE_SCALE.search(comment_text)
             gender = RE_GENDER.search(comment_text)
 
-            detail = {
-                'comment_text': comment_text, 
-                'scale': None, 
-                'gender': None,
-                'created': comment['created'],
-                'commenter': {
-                    'first_name': commenter.get('firstName'),
-                    'last_name': commenter.get('lastName'),
-                    'picture_url': commenter.get('pictureUrl'),
-                    'created': commenter.get('created'),
-                }
-            }
-
-            if rx is not None:
-                post['num_rx'] += 1
-                detail['scale'] = rx.group(1)
-            elif scale is not None:
-                post['num_scale'] += 1
-                detail['scale'] = scale.group(1)
+            if scale is not None:
+                post.num_scale += 1
+                scale_type = scale.group(1).lower()
+            elif rx is not None:
+                post.num_rx += 1
+                scale_type = rx.group(1).lower()
+            else:
+                scale_type = None
 
             if gender is not None:
-                if 'm' in gender.group(1):
-                    post['num_male'] += 1
-                else:
-                    post['num_female'] += 1
-                detail['gender'] = gender.group(1)
+                gender_type = gender.group(1).lower()
+                if 'm' in gender_type:
+                    post.num_male += 1
+                elif 'f' in gender_type:
+                    post.num_female += 1
+            else:
+                gender_type = None
 
-            details.append(detail)
+            comment = Comment(
+                post = post,
+                commenter = commenter,
+                comment_text = comment_text,
+                created=datetime.datetime(
+                    *get_datetime(raw_comment['created'])
+                ),
+                scale = scale_type,
+                gender = gender_type,
+                raw_score="",
+                score=None,
+                height=None,
+                weight=None,
+                age=None
+            )
+            comment.save()
+
+        post.save()
 
         context = {
             'post': post,
-            'details': details,
+            'details': post.comment_set.all(),
         }
 
         return context
@@ -107,7 +146,7 @@ def get_valid_date(request):
     date = datetime.date(YYYY,MM,DD)
     if date < EARLIEST_DATE or date > today:
         raise ValueError("Date must be between Feb 1, 2001 and today")
-    return (YYYY, MM, DD)
+    return date
 
 def get_str_date(YYYY, MM, DD):
     return ("{:0>4}".format(YYYY), "{:0>2}".format(MM), "{:0>2}".format(DD))
@@ -123,72 +162,23 @@ def get_datetime(string):
     [a.append(i) for i in t.split(':')]
     return [int(i) for i in a]
 
-def add_comments(context):
-    
-    workout = Workout(
-        title = get_str_date(*context['date']),
-        description = get_str_date(*context['date']),
-        tags = "",
-    )
-    workout.save()
-
-    post = Post(
-        workout = workout,
-        created = datetime.date(*context['date']),
-        url = context['url'],
-        num_comments = context['post']['num_comments'],
-        num_male = context['post']['num_male'],
-        num_female = context['post']['num_female'],
-        num_rx = context['post']['num_rx'],
-        num_scale = context['post']['num_scale']
-    )
-    post.save()
-
-    for i in range(post.num_comments):
-
-        detail = context['details'][i]
-            
-        commenter = Commenter(
-            first_name = detail['commenter']['first_name'] or "",
-            last_name = detail['commenter']['last_name'] or "",
-            picture_url = detail['commenter']['picture_url'],
-            created = datetime.datetime(
-                *get_datetime(detail['commenter']['created'])
-            ),
-        )
-        commenter.save()
-
-        comment = Comment(
-            post=post,
-            commenter=commenter,
-            comment_text=detail['comment_text'],
-            created=datetime.datetime(
-                *get_datetime(detail['created'])
-            ),
-            scale=detail['scale'],
-            gender=detail['gender'],
-            raw_score="",
-            score=None,
-            height=None,
-            weight=None,
-            age=None
-        )
-        comment.save()
-
 def cache(context):
-    _cache[context['date']] = [context, 0]
+    _cache[context['post'].created] = [context, 0]
 
 def cache_responds(date):
-    return  _cache.get(date)    
+    return  _cache.get(date) 
 
 def db_responds(date):
-    post = Post.objects.filter(created=datetime.date(*date))
+    post = Post.objects.filter(created=date)
     return post.first()
 
-def get_new_data(url):
+def get_page(url):
     with urllib.request.urlopen(url) as resp:
         page = resp.read().decode('utf-8')
-        context = summarize(page)
+    return page
+
+def get_new_data(url, date):
+    context = summarize(get_page(url), url, date)
     return context 
 
 def search(request):
@@ -208,12 +198,7 @@ def search(request):
         elif db_responds(date):
             post = db_responds(date)
             context = {
-                'date': (post.created.year, post.created.month, post.created.day),
-                'num_comments': post.num_comments,
-                'num_male': post.num_male,
-                'num_female': post.num_female,
-                'num_rx': post.num_rx,
-                'num_scale': post.num_scale,
+                'post' : post,
                 'details': post.comment_set.all(),
             }
             print("DB HIT************\n\n")
@@ -222,10 +207,9 @@ def search(request):
             return HttpResponse(loader.get_template('comments.html')\
                 .render(context, request))
         else:
-            context = get_new_data(build_url(*date, API))
-            context['url'] = build_url(*date, REG)
-            context['date'] = date
-            add_comments(context)
+            print("Add to db\n\n")
+            context = get_new_data(build_url(date, API), date)
+            print("Add to cache\n\n")
             cache(context)
             return HttpResponse(loader.get_template('comments.html')\
                 .render(context, request))

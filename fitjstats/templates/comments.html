@@ -2,18 +2,18 @@
 {% block content %}
 
 <div class="header">
-    <div id="wod">original: <a href="{{ url }}" target="_blank">{{ url }}</a></div>
+    <div id="wod">original: <a href="{{ post.url }}" target="_blank">{{ post.url }}</a></div>
     <ul class="results">
         <li>
-            <div class="val">{{ num_rx }}</div>
+            <div class="val">{{ post.num_rx }}</div>
             <div class="desc">total rx</div>
         </li>
         <li>
-            <div class="val">{{ num_male }}</div>
+            <div class="val">{{ post.num_male }}</div>
             <div class="desc">total males</div>
         </li>
         <li>
-            <div class="val">{{ num_female }}</div>
+            <div class="val">{{ post.num_female }}</div>
             <div class="desc">total females</div>
         </li>
     </ul>
