@@ -65,17 +65,62 @@ def new_commenter(raw_commenter):
             last_name = raw_commenter.get('last_name') or "",
             picture_url = raw_commenter.get('picture_url') or "",
             created = datetime.datetime(
-                *get_datetime(raw_commenter['created'])
+                *get_datetime(raw_commenter.get('created'))
             )
         )
 
-def summarize(page, url, date):
+def new_comment(post, commenter, comment_text, raw_comment):
+    return Comment(
+        post = post,
+        commenter = commenter,
+        comment_text = comment_text,
+        created=datetime.datetime(
+            *get_datetime(raw_comment.get('created'))
+        ),
+        scale = None,
+        gender = None,
+        raw_score="",
+        score=None,
+        height=None,
+        weight=None,
+        age=None
+    )
+
+def process_comment(post, comment, comment_text):
+    rx = RE_RX.search(comment_text)
+    scale = RE_SCALE.search(comment_text)
+    gender = RE_GENDER.search(comment_text)
+
+    if scale is not None:
+        post.num_scale += 1
+        scale_type = scale.group(1).lower()
+    elif rx is not None:
+        post.num_rx += 1
+        scale_type = rx.group(1).lower()
+    else:
+        scale_type = None
+
+    if gender is not None:
+        gender_type = gender.group(1).lower()
+        if 'm' in gender_type:
+            post.num_male += 1
+        elif 'f' in gender_type:
+            post.num_female += 1
+    else:
+        gender_type = None
+
+    return {
+        'scale_type': scale_type,
+        'gender_type' : gender_type,
+    }
+
+def summarize(page, date):
     try:
         data = json.loads(page)
     except TypeError as e:
         raise e
     else:
-        workout = new_workout(url)
+        workout = new_workout(build_url(date, REG))
         workout.save()
 
         post = new_post(workout, date, len(data))
@@ -90,43 +135,12 @@ def summarize(page, url, date):
 
             comment_text = raw_comment['commentText']
 
-            rx = RE_RX.search(comment_text)
-            scale = RE_SCALE.search(comment_text)
-            gender = RE_GENDER.search(comment_text)
+            comment = new_comment(post, commenter, comment_text, raw_comment)
+            comment.save()
 
-            if scale is not None:
-                post.num_scale += 1
-                scale_type = scale.group(1).lower()
-            elif rx is not None:
-                post.num_rx += 1
-                scale_type = rx.group(1).lower()
-            else:
-                scale_type = None
-
-            if gender is not None:
-                gender_type = gender.group(1).lower()
-                if 'm' in gender_type:
-                    post.num_male += 1
-                elif 'f' in gender_type:
-                    post.num_female += 1
-            else:
-                gender_type = None
-
-            comment = Comment(
-                post = post,
-                commenter = commenter,
-                comment_text = comment_text,
-                created=datetime.datetime(
-                    *get_datetime(raw_comment['created'])
-                ),
-                scale = scale_type,
-                gender = gender_type,
-                raw_score="",
-                score=None,
-                height=None,
-                weight=None,
-                age=None
-            )
+            detail = process_comment(post, comment, comment_text)
+            comment.scale_type = detail.get('scale_type')
+            comment.gender_type = detail.get('gender_type')
             comment.save()
 
         post.save()
@@ -134,6 +148,7 @@ def summarize(page, url, date):
         context = {
             'post': post,
             'details': post.comment_set.all(),
+            'views': 0,
         }
 
         return context
@@ -163,22 +178,35 @@ def get_datetime(string):
     return [int(i) for i in a]
 
 def cache(context):
-    _cache[context['post'].created] = [context, 0]
+    print("\nCached\n")
+    _cache[context['post'].created] = context
 
 def cache_responds(date):
-    return  _cache.get(date) 
+    context = _cache.get(date)
+    if context is not None:
+        print("\nCACHE HIT\n")
+        context['views'] += 1
+    return context
 
 def db_responds(date):
-    post = Post.objects.filter(created=date)
-    return post.first()
-
-def get_page(url):
-    with urllib.request.urlopen(url) as resp:
-        page = resp.read().decode('utf-8')
-    return page
+    post = Post.objects.filter(created=date).first()
+    if post is None:
+        return None
+    print("\nDB HIT\n")
+    context = {
+        'post' : post,
+        'details': post.comment_set.all(),
+        'views': 1,
+    }
+    cache(context)
+    return context
 
 def get_new_data(url, date):
-    context = summarize(get_page(url), url, date)
+    with urllib.request.urlopen(url) as resp:
+        page = resp.read().decode('utf-8')
+        context = summarize(page, date)
+        print("\nNew entry\n")
+        cache(context)
     return context 
 
 def search(request):
@@ -188,30 +216,11 @@ def search(request):
         except ValueError as invalid_date:
             return HttpResponse(invalid_date)
 
-        if cache_responds(date):
-            context_wrapper = cache_responds(date)
-            context_wrapper[1] += 1
-            context = context_wrapper[0]
-            print("CACHE HIT************\n\n")
-            return HttpResponse(loader.get_template('comments.html')\
-                .render(context, request))
-        elif db_responds(date):
-            post = db_responds(date)
-            context = {
-                'post' : post,
-                'details': post.comment_set.all(),
-            }
-            print("DB HIT************\n\n")
-            cache(context)
-            print("Add to cache\n\n")
-            return HttpResponse(loader.get_template('comments.html')\
-                .render(context, request))
-        else:
-            print("Add to db\n\n")
-            context = get_new_data(build_url(date, API), date)
-            print("Add to cache\n\n")
-            cache(context)
-            return HttpResponse(loader.get_template('comments.html')\
-                .render(context, request))
+        context = cache_responds(date) \
+            or db_responds(date) \
+            or get_new_data(build_url(date, API), date)
+
+        return HttpResponse(loader.get_template('comments.html')\
+            .render(context, request))
 
     return HttpResponse("Failed")
