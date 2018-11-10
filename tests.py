@@ -1,16 +1,25 @@
 import unittest
+import datetime
 
 from fitjstats.views import build_url, RE_RX, RE_SCALE, RE_GENDER
-from fitjstats.views import get_datetime, get_new_data, add_comments
+from fitjstats.views import get_datetime, get_new_data
 from fitjstats import settings
 
 class TestCrawler(unittest.TestCase):
 
     def test_build_url(self):
-        self.assertEqual(build_url("2018", "10", "10"), \
-            "https://crossfit.com/comments/api/v1/topics/mainsite.20181010/comments")
-        self.assertEqual(build_url("2018", "1", "1"), \
-            "https://crossfit.com/comments/api/v1/topics/mainsite.20180101/comments")
+        self.assertEqual(
+            build_url(datetime.date(2018, 10, 10)),
+            "https://crossfit.com/" \
+            + "comments/api/v1/topics/" \
+            + "mainsite.20181010/comments"
+        )
+        self.assertEqual(
+            build_url(datetime.date(2018, 1, 1)),
+            "https://crossfit.com/" \
+            + "comments/api/v1/topics/" \
+            + "mainsite.20180101/comments"
+        )
 
     def test_static_dir(self):
         self.assertTrue("/home/kevin/fitjstats/fitjstats/static" in 
@@ -115,37 +124,30 @@ class TestCrawler(unittest.TestCase):
         self.assertTrue([2018, 11, 4, 10, 18, 29] == get_datetime(dt))
 
     def test_get_context(self):
-        context = get_new_data(
-            "https://crossfit.com/comments/" \
-            + "api/v1/topics/mainsite." \
-            + "20180101/comments"
-        )
+        import pytz
+        context = get_new_data(datetime.date(2018,1,1))
         detail = context['details'][1]
         self.assertTrue(
-            detail['comment_text'] == "Well that was an interesting article and not at all surprising. For big corp it's really the only logical step to keep the big money ball rolling and doing what worked in first world countries for so long. Sad that the world is so corrupt.".lower()
+            detail.comment_text == "Well that was an interesting article and not at all surprising. For big corp it's really the only logical step to keep the big money ball rolling and doing what worked in first world countries for so long. Sad that the world is so corrupt."
         )
         self.assertTrue(
-            detail['created'] == "2018-01-01T02:42:58+0000"
+            #"2018-01-01T02:42:58+0000"
+            detail.created == datetime.datetime(2018,1,1,2,42,58, tzinfo=pytz.UTC)
         )
         self.assertTrue(
-            detail['commenter']['first_name'] == "Nathan"
+            detail.commenter.first_name == "Nathan"
         )
         self.assertTrue(
-            detail['commenter']['last_name'] == "Jones"
+            detail.commenter.last_name == "Jones"
         )
         self.assertTrue(
-            detail['commenter']['picture_url'] == 
+            detail.commenter.picture_url == 
             "https://profilepicsbucket.crossfit.com/fbe15-P241707_7-184.jpg"
         )
         self.assertTrue(
-            detail['commenter']['created'] == "2016-03-30T18:23:58+0000"
+            #"2016-03-30T18:23:58+0000"
+            detail.commenter.created == datetime.datetime(2016,3,30,18,23,58, tzinfo=pytz.UTC)
         )
 
-    def test_add_comments(self):
-        context = get_new_data(
-            "https://crossfit.com/comments/" \
-            + "api/v1/topics/mainsite." \
-            + "20180101/comments"
-        )
-        context['date'] = (2018, 1, 1)
-        context['url'] = build_url(2018, 1, 1, 1)
+if __name__ == "__main__":
+    unittest.main()

@@ -56,13 +56,13 @@ def new_post(workout, date, num_comments):
 
 def new_commenter(raw_commenter):
     return Commenter(
-            first_name = raw_commenter.get('first_name') or "",
-            last_name = raw_commenter.get('last_name') or "",
-            picture_url = raw_commenter.get('picture_url') or "",
-            created = datetime.datetime(
-                *get_datetime(raw_commenter.get('created'))
-            )
+        first_name = raw_commenter.get('firstName') or "",
+        last_name = raw_commenter.get('lastName') or "",
+        picture_url = raw_commenter.get('pictureUrl') or "",
+        created = datetime.datetime(
+            *get_datetime(raw_commenter.get('created'))
         )
+    )
 
 def new_comment(post, commenter, comment_text, created):
     return Comment(
@@ -115,7 +115,6 @@ def summarize(page, date):
         post.save()
 
         for entry in data:
-
             commenter = new_commenter(entry['commenter'])
             commenter.save()
 
