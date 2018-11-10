@@ -35,11 +35,6 @@ def build_url(date, option=API):
         day=date.day
     )
 
-# Create your views here.
-def home(request):
-    template = loader.get_template('home.html')
-    return HttpResponse(template.render({}, request))
-
 def new_workout(context):
     return Workout(
             title = context,
@@ -69,50 +64,43 @@ def new_commenter(raw_commenter):
             )
         )
 
-def new_comment(post, commenter, comment_text, raw_comment):
+def new_comment(post, commenter, comment_text, created):
     return Comment(
         post = post,
         commenter = commenter,
         comment_text = comment_text,
-        created=datetime.datetime(
-            *get_datetime(raw_comment.get('created'))
-        ),
+        created = datetime.datetime(*get_datetime(created)),
         scale = None,
         gender = None,
-        raw_score="",
-        score=None,
-        height=None,
-        weight=None,
-        age=None
+        raw_score = "",
+        score = None,
+        height = None,
+        weight = None,
+        age = None
     )
 
 def process_comment(post, comment, comment_text):
     rx = RE_RX.search(comment_text)
     scale = RE_SCALE.search(comment_text)
     gender = RE_GENDER.search(comment_text)
-
+    
     if scale is not None:
         post.num_scale += 1
-        scale_type = scale.group(1).lower()
+        comment.scale = scale.group(1).lower()
     elif rx is not None:
         post.num_rx += 1
-        scale_type = rx.group(1).lower()
+        comment.scale = rx.group(1).lower()
     else:
-        scale_type = None
+        comment.scale = None
 
     if gender is not None:
-        gender_type = gender.group(1).lower()
-        if 'm' in gender_type:
+        comment.gender = gender.group(1).lower()
+        if 'm' in comment.gender:
             post.num_male += 1
-        elif 'f' in gender_type:
+        elif 'f' in comment.gender:
             post.num_female += 1
     else:
-        gender_type = None
-
-    return {
-        'scale_type': scale_type,
-        'gender_type' : gender_type,
-    }
+        comment.gender = None
 
 def summarize(page, date):
     try:
@@ -126,32 +114,24 @@ def summarize(page, date):
         post = new_post(workout, date, len(data))
         post.save()
 
-        for i in range(post.num_comments):
+        for entry in data:
 
-            raw_comment = data[i]
-
-            commenter = new_commenter(raw_comment['commenter'])
+            commenter = new_commenter(entry['commenter'])
             commenter.save()
 
-            comment_text = raw_comment['commentText']
+            comment_text = entry['commentText']
+            created = entry['created']
 
-            comment = new_comment(post, commenter, comment_text, raw_comment)
-            comment.save()
-
-            detail = process_comment(post, comment, comment_text)
-            comment.scale_type = detail.get('scale_type')
-            comment.gender_type = detail.get('gender_type')
+            comment = new_comment(post, commenter, comment_text, created)
+            process_comment(post, comment, comment_text)
             comment.save()
 
         post.save()
-
-        context = {
+        return {
             'post': post,
             'details': post.comment_set.all(),
             'views': 0,
         }
-
-        return context
     
 def get_valid_date(request):
     today = datetime.date.today()
@@ -181,14 +161,14 @@ def cache(context):
     print("\nCached\n")
     _cache[context['post'].created] = context
 
-def cache_responds(date):
+def get_from_cache(date):
     context = _cache.get(date)
     if context is not None:
         print("\nCACHE HIT\n")
         context['views'] += 1
     return context
 
-def db_responds(date):
+def get_from_db(date):
     post = Post.objects.filter(created=date).first()
     if post is None:
         return None
@@ -201,13 +181,23 @@ def db_responds(date):
     cache(context)
     return context
 
-def get_new_data(url, date):
-    with urllib.request.urlopen(url) as resp:
+def get_new_data(date):
+    with urllib.request.urlopen(build_url(date, API)) as resp:
         page = resp.read().decode('utf-8')
         context = summarize(page, date)
         print("\nNew entry\n")
         cache(context)
     return context 
+
+def delete_post(date):
+    post = Post.objects.filter(created=date).first()
+    if post is not None:
+        post.delete()
+
+# Create your views here.
+def home(request):
+    template = loader.get_template('home.html')
+    return HttpResponse(template.render({}, request))
 
 def search(request):
     if request.method == 'GET':
@@ -216,9 +206,16 @@ def search(request):
         except ValueError as invalid_date:
             return HttpResponse(invalid_date)
 
-        context = cache_responds(date) \
-            or db_responds(date) \
-            or get_new_data(build_url(date, API), date)
+        try:
+            update = int(request.GET.get('update', 0))
+        except ValueError as invalid_int:
+            return HttpResponse(invalid_int)
+
+        if update == 1:
+            delete_post(date)
+        context = get_from_cache(date) \
+            or get_from_db(date) \
+            or get_new_data(date)
 
         return HttpResponse(loader.get_template('comments.html')\
             .render(context, request))
