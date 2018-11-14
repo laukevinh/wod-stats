@@ -29,27 +29,20 @@
         </ul>
     </div>
     <div class="container">
-    <div id="input" class="header">
-        <form action="{% url 'search' %}">
-            Date: 
-            <input type="text" name="YYYY" placeholder="YYYY" value="{{ post.created.year }}" autocomplete="off">
-            <input type="text" name="MM" placeholder="MM" value="{{ post.created.month }}" autocomplete="off">
-            <input type="text" name="DD" placeholder="DD" value="{{ post.created.day }}" autocomplete="off">
-            <!--
-            <input type="text" id="datepicker" placeholder="MM/DD/YYYY" 
-                {% if YYYY and MM and DD %}
-                value="{{ MM }}/{{ DD }}/{{ YYYY }}"
-                {% endif %}
-            >
-            -->
-            <button class="btn-med" type="submit" formmethod="GET">Submit</button>
-            <button class="btn-med" onclick="showToday()">Today</button>
-            <div id="calendar"></div>
-        </form>
-    </div>
+        <div id="input" class="header">
+            <form action="{% url 'search' %}">
+                Date: 
+                <input type="text" name="YYYY" placeholder="YYYY" value="{{ post.created.year }}" autocomplete="off">
+                <input type="text" name="MM" placeholder="MM" value="{{ post.created.month }}" autocomplete="off">
+                <input type="text" name="DD" placeholder="DD" value="{{ post.created.day }}" autocomplete="off">
+                <button class="btn-med" type="submit" formmethod="GET">Submit</button>
+                <button class="btn-med" id="getToday">Today</button>
+                <div id="calendar"></div>
+            </form>
+        </div>
 
     {% block content %}{% endblock content %}
-    </div> <!--container-->
+    </div><!--container-->
 
 </body>
 

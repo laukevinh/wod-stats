@@ -91,13 +91,27 @@ ul.results {
     padding: 0.75em 0px;
     display: flex;
     text-align: center;
+    justify-content: space-between;
 }
 
-ul.results li{
-    margin-right: 0.75em;
+ul.results li {
     padding: 1em;
     border: 1px solid #c8c8c8;
     border-radius: 0.25rem;
+}
+
+ul.results li:hover {
+    cursor: pointer;
+}
+
+ul.results li.inactive {
+    background-color: white;
+    color: black;
+}
+
+ul.results li.active{
+    background-color: #316a94;
+    color: white;
 }
 
 ul.results li .val {
@@ -106,7 +120,6 @@ ul.results li .val {
 
 ul.results li .desc {
     font-size: 0.75em;
-    color: #444;
 }
 
 #wod {
@@ -168,7 +181,6 @@ ul.results li .desc {
 
 .btn-med:hover {
     background-color: #cc1d1d;
-
 }
 
 .btn-med:active {
