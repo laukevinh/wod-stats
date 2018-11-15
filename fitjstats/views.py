@@ -12,6 +12,7 @@ import datetime
 RE_RX = re.compile(r"(?<![a-cf-z])(rx)(?![a-cf-z])", re.I)
 RE_SCALE = re.compile(r"\b(scale)(?:d|\b)", re.I)
 RE_GENDER = re.compile(r"(?:^|[\s/])([mf])[^a-z]", re.I)
+RE_DATE = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
 
 API = 0
 REG = 1
@@ -131,14 +132,18 @@ def summarize(page, date):
             'details': post.comment_set.all(),
             'views': 0,
         }
-    
+
 def get_valid_date(request):
-    today = datetime.date.today()
-    YYYY = int(request.GET.get('YYYY', today.year))
-    MM   = int(request.GET.get('MM', today.month))
-    DD   = int(request.GET.get('DD', today.day))
-    date = datetime.date(YYYY,MM,DD)
-    if date < EARLIEST_DATE or date > today:
+    d = RE_DATE.match(request.GET.get('date'))
+    try:
+        year, month, day = d.group().split('-')
+    except AttributeError:
+        raise AttributeError("Date cannot be empty")
+    except ValueError:
+        raise ValueError("Enter date in a valid format YYYY-MM-DD") 
+
+    date = datetime.date(int(year), int(month), int(day))
+    if date < EARLIEST_DATE or date > datetime.date.today():
         raise ValueError("Date must be between Feb 1, 2001 and today")
     return date
 
@@ -202,6 +207,8 @@ def search(request):
     if request.method == 'GET':
         try:
             date = get_valid_date(request)
+        except AttributeError as empty_date:
+            return HttpResponse(empty_date)
         except ValueError as invalid_date:
             return HttpResponse(invalid_date)
 

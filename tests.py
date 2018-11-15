@@ -1,8 +1,8 @@
 import unittest
 import datetime
 
-from fitjstats.views import build_url, RE_RX, RE_SCALE, RE_GENDER
-from fitjstats.views import get_datetime, get_new_data
+from fitjstats.views import RE_RX, RE_SCALE, RE_GENDER, RE_DATE
+from fitjstats.views import build_url, get_datetime, get_new_data
 from fitjstats import settings
 
 class TestCrawler(unittest.TestCase):
@@ -118,6 +118,14 @@ class TestCrawler(unittest.TestCase):
     def test_rx_not_at_end_of_str(self):
         not_rx = "did 200 single unders instead, rest as rx'd-35:20"
         pass
+
+    def test_rx_date(self):
+        self.assertEqual(RE_DATE.match("20180101").group(), "20180101") 
+        self.assertEqual(RE_DATE.match("99999999").group(), "99999999")
+        self.assertEqual(RE_DATE.match("2018010a"), None)
+        self.assertEqual(RE_DATE.match("a0180101"), None)
+        self.assertEqual(RE_DATE.match("201a0101"), None)
+        self.assertEqual(RE_DATE.match("abcdef_s"), None)
 
     def test_get_datetime(self):
         dt = "2018-11-04T10:18:29+0000"
