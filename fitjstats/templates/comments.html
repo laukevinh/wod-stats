@@ -4,23 +4,23 @@
 <div class="header">
     <div id="wod">original: <a href="{{ post.url }}" target="_blank">{{ post.url }}</a></div>
     <ul class="results">
-        <li>
+        <li class="inactive" onclick="showOnly(this, 'rx')">
             <div class="val">{{ post.num_rx }}</div>
             <div class="desc">total rx</div>
         </li>
-        <li>
+        <li class="inactive" onclick="showOnly(this, 'scale')">
             <div class="val">{{ post.num_scale }}</div>
             <div class="desc">total scale</div>
         </li>
-        <li>
+        <li class="inactive">
             <div class="val">{{ post.num_comments }}</div>
             <div class="desc">total comments</div>
         </li>
-        <li>
+        <li class="inactive" onClick="showOnly(this, 'm')">
             <div class="val">{{ post.num_male }}</div>
             <div class="desc">total males</div>
         </li>
-        <li>
+        <li class="inactive" onClick="showOnly(this, 'f')">
             <div class="val">{{ post.num_female }}</div>
             <div class="desc">total females</div>
         </li>
@@ -46,22 +46,21 @@
 </div>
 
 {% for detail in details %}
-    <div class="card collapsed" onclick="flex(this)">
-        <div class="card-padding">
-            <div class="col-8">
+<div class="card collapsed {{ detail.scale }} {{ detail.gender }} " >
+    <div class="card-padding">
+        <div class="col-8">
             <li>{{ detail.comment_text }}</li>
-            </div>
-
-            <div class="col-2">
+        </div>
+        <div class="col-2">
             <li class="stat">{{ detail.scale }}</li>
-            </div>
-
-            <div class="col-2">
+        </div>
+        <div class="col-2">
             <li class="stat">{{ detail.gender }}</li>
-            </div>
         </div>
     </div>
+</div>
 {% endfor %}
+
 </div> <!--comments-->
 
 {% endblock content %}

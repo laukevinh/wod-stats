@@ -7,19 +7,6 @@
 <link rel="stylesheet" href="{% static 'main.css' %}">
 <title>WOD Stats Home</title>
 
-<!--
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-<link rel="stylesheet" href="/resources/demos/style.css">
-<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
-<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-<script>
-    $( function() {
-        $( "#datepicker" ).datepicker();
-    } );
-</script>
--->
-
 </head>
 
 <body>
@@ -29,31 +16,23 @@
         </ul>
     </div>
     <div class="container">
-    <div id="input" class="header">
-        <form action="{% url 'search' %}">
-            Date: 
-            <input type="text" name="YYYY" placeholder="YYYY" value="{{ post.created.year }}" autocomplete="off">
-            <input type="text" name="MM" placeholder="MM" value="{{ post.created.month }}" autocomplete="off">
-            <input type="text" name="DD" placeholder="DD" value="{{ post.created.day }}" autocomplete="off">
-            <!--
-            <input type="text" id="datepicker" placeholder="MM/DD/YYYY" 
-                {% if YYYY and MM and DD %}
-                value="{{ MM }}/{{ DD }}/{{ YYYY }}"
+        <div id="input" class="header">
+            <form action="{% url 'search' %}">
+                <label for="date">Date:</label>
+                {% if post %}
+                <input type="date" id="date" name="date" value="{{ post.created|date:"Y-m-d" }}">
+                {% else %}
+                <input type="date" id="date" name="date" >
                 {% endif %}
-            >
-            -->
-            <button class="btn-med" type="submit" formmethod="GET">Submit</button>
-            <button class="btn-med" onclick="showToday()">Today</button>
-            <div id="calendar"></div>
-        </form>
-    </div>
+                <button class="btn-med" type="submit" formmethod="GET">Submit</button>
+            </form>
+        </div>
 
     {% block content %}{% endblock content %}
-    </div> <!--container-->
+    </div><!--container-->
 
 </body>
 
 <script type="text/javascript" src="{% static 'crawl.js' %}"></script>
-<!--<script type="text/javascript" src="crawl.js"></script>-->
 
 </html>

@@ -1,9 +1,18 @@
 import unittest
 import datetime
 
-from fitjstats.views import build_url, RE_RX, RE_SCALE, RE_GENDER
-from fitjstats.views import get_datetime, get_new_data
+from fitjstats.views import build_url, get_datetime, get_new_data
+from fitjstats.views import process_post
+
+from fitjstats.util import RE_RX, RE_SCALE, RE_GENDER, RE_DATE
+from fitjstats.util import RE_REG_URL, RE_DATETIME
+from fitjstats.util import API, REG, BASE_URL, EARLIEST_DATE
+from fitjstats.util import WODHTMLParser
+
+from fitjstats.models import Workout
+
 from fitjstats import settings
+
 
 class TestCrawler(unittest.TestCase):
 
@@ -119,9 +128,20 @@ class TestCrawler(unittest.TestCase):
         not_rx = "did 200 single unders instead, rest as rx'd-35:20"
         pass
 
-    def test_get_datetime(self):
-        dt = "2018-11-04T10:18:29+0000"
-        self.assertTrue([2018, 11, 4, 10, 18, 29] == get_datetime(dt))
+    def test_rx_date(self):
+        self.assertEqual(RE_DATE.match("2018-01-01").group(), "2018-01-01") 
+        self.assertEqual(RE_DATE.match("9999-99-99").group(), "9999-99-99")
+        self.assertEqual(RE_DATE.match("2018/01.01"), None)
+        self.assertEqual(RE_DATE.match("2018.01.01"), None)
+        self.assertEqual(RE_DATE.match("asbd-sd-we"), None)
+        self.assertEqual(RE_DATE.match("abcdef_s"), None)
+        self.assertEqual(RE_DATE.match("abcdef_s122"), None)
+
+    def test_created_date(self):
+        self.assertEqual(
+            get_datetime("2018-11-04T10:18:29+0000"), 
+            datetime.datetime(2018, 11, 4, 10, 18, 29)
+        )
 
     def test_get_context(self):
         import pytz
@@ -148,6 +168,32 @@ class TestCrawler(unittest.TestCase):
             #"2016-03-30T18:23:58+0000"
             detail.commenter.created == datetime.datetime(2016,3,30,18,23,58, tzinfo=pytz.UTC)
         )
+
+class TestHTMLParser(unittest.TestCase):
+    
+    def setUp(self):
+        import urllib
+        self.parser = WODHTMLParser()
+        self.date = datetime.date(2017, 11, 17)
+        with urllib.request.urlopen(build_url(self.date, REG)) as f:
+            self.page = str(f.read())
+
+    def test_reg_url(self):
+        self.assertEqual(
+            RE_REG_URL.match(
+                "https://www.crossfit.com/workout/2003/08/25#/comments"
+            ).group(),
+            "https://www.crossfit.com/workout/2003/08/25"
+        )
+
+    def test_parser(self):
+        self.parser.feed(self.page)
+
+    def test_process_post(self):
+        # fran
+        pass
+
+
 
 if __name__ == "__main__":
     unittest.main()

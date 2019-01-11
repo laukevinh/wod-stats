@@ -85,19 +85,40 @@ body {
     font-family: sans-serif;
 }
 
+#date {
+    border-radius: 0.25em;
+    border-style: solid;
+    border-width: 1px;
+    border-color: #333;
+}
+
 ul.results {
     list-style: none;
     margin: 0px;
     padding: 0.75em 0px;
     display: flex;
     text-align: center;
+    justify-content: space-between;
 }
 
-ul.results li{
-    margin-right: 0.75em;
+ul.results li {
     padding: 1em;
     border: 1px solid #c8c8c8;
     border-radius: 0.25rem;
+}
+
+ul.results li:hover {
+    cursor: pointer;
+}
+
+ul.results li.inactive {
+    background-color: white;
+    color: black;
+}
+
+ul.results li.active{
+    background-color: #316a94;
+    color: white;
 }
 
 ul.results li .val {
@@ -106,7 +127,6 @@ ul.results li .val {
 
 ul.results li .desc {
     font-size: 0.75em;
-    color: #444;
 }
 
 #wod {
@@ -168,7 +188,6 @@ ul.results li .desc {
 
 .btn-med:hover {
     background-color: #cc1d1d;
-
 }
 
 .btn-med:active {
@@ -179,23 +198,18 @@ ul.results li .desc {
     padding: 1.25em;
 }
 
-input[type="text"] {
+input[type="date"] {
     margin: 2px 0px;
+    font-family: sans-serif;
 }
 
 @media only screen and (max-width:749px) {
-    #input {
-        width: 180px;
-    }
     .container {
         width: 100%;
     }
 }
 
 @media only screen and (min-width:750px) {
-    #input {
-        width: 100%;
-    }
     .container {
         width: 750px;
         margin: 14px auto;

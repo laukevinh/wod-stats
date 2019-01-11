@@ -4,27 +4,15 @@ from django.template import loader
 
 from .models import Workout, Post, Commenter, Comment
 
+from .util import RE_RX, RE_SCALE, RE_GENDER, RE_DATE, RE_REG_URL
+from .util import RE_WORD, RE_DATETIME
+from .util import API, REG, BASE_URL
+from .util import EARLIEST_DATE, EARLIEST_DATETIME
+from .util import WODHTMLParser
+
 import urllib.request
 import json
-import re
 import datetime
-
-RE_RX = re.compile(r"(?<![a-cf-z])(rx)(?![a-cf-z])", re.I)
-RE_SCALE = re.compile(r"\b(scale)(?:d|\b)", re.I)
-RE_GENDER = re.compile(r"(?:^|[\s/])([mf])[^a-z]", re.I)
-
-API = 0
-REG = 1
-BASE_URL = ("https://crossfit.com/" 
-            + "comments/api/v1/" 
-            + "topics/mainsite." 
-            + "{year:0>4}{month:0>2}{day:0>2}"
-            + "/comments",
-            "https://www.crossfit.com/"
-            + "workout/"
-            + "{year:0>4}/{month:0>2}/{day:0>2}")
-    
-EARLIEST_DATE = datetime.date(2001, 2, 1)
 
 _cache = dict()
 
@@ -35,51 +23,17 @@ def build_url(date, option=API):
         day=date.day
     )
 
-def new_workout(context):
-    return Workout(
-            title = context,
-            description = context,
-            tags = "",
-        )
-
-def new_post(workout, date, num_comments):
-    return Post(
-        workout = workout,
-        created = date,
-        url = build_url(date, REG),
-        num_comments = num_comments,
-        num_male = 0,
-        num_female = 0,
-        num_rx = 0,
-        num_scale = 0,
-    )
-
-def new_commenter(raw_commenter):
+def new_commenter(commenter):
     return Commenter(
-        first_name = raw_commenter.get('firstName') or "",
-        last_name = raw_commenter.get('lastName') or "",
-        picture_url = raw_commenter.get('pictureUrl') or "",
-        created = datetime.datetime(
-            *get_datetime(raw_commenter.get('created'))
-        )
-    )
-
-def new_comment(post, commenter, comment_text, created):
-    return Comment(
-        post = post,
-        commenter = commenter,
-        comment_text = comment_text,
-        created = datetime.datetime(*get_datetime(created)),
-        scale = None,
-        gender = None,
-        raw_score = "",
-        score = None,
-        height = None,
-        weight = None,
-        age = None
+        first_name = commenter.get('firstName') or "",
+        last_name = commenter.get('lastName') or "",
+        picture_url = commenter.get('pictureUrl') or "",
+        created = get_datetime(commenter.get('created'))
     )
 
 def process_comment(comment):
+    comment.post.num_comments += 1
+
     rx = RE_RX.search(comment.comment_text)
     scale = RE_SCALE.search(comment.comment_text)
     gender = RE_GENDER.search(comment.comment_text)
@@ -102,63 +56,73 @@ def process_comment(comment):
     else:
         comment.gender = None
 
-def summarize(page, date):
+def process_cmts(page, date, post):
     try:
         data = json.loads(page)
     except TypeError as e:
         raise e
     else:
-        workout = new_workout(build_url(date, REG))
-        workout.save()
-
-        post = new_post(workout, date, len(data))
-        post.save()
-
         for entry in data:
             commenter = new_commenter(entry['commenter'])
             commenter.save()
 
-            comment_text = entry['commentText']
-            created = entry['created']
+            comment = Comment(
+                post = post,
+                commenter = commenter,
+                comment_text = entry['commentText'],
+                created = get_datetime(entry['created'])
+            )
 
-            comment = new_comment(post, commenter, comment_text, created)
             process_comment(comment)
             comment.save()
 
         post.save()
+
         return {
             'post': post,
             'details': post.comment_set.all(),
             'views': 0,
         }
-    
-def get_valid_date(request):
-    today = datetime.date.today()
-    YYYY = int(request.GET.get('YYYY', today.year))
-    MM   = int(request.GET.get('MM', today.month))
-    DD   = int(request.GET.get('DD', today.day))
-    date = datetime.date(YYYY,MM,DD)
-    if date < EARLIEST_DATE or date > today:
+
+def process_post(page, date):
+    parser = WODHTMLParser()
+    parser.feed(str(page))
+    post = Post(
+        workout = None,
+        created = date,
+        url = build_url(date, REG),
+        text = "".join(parser.data)
+    )
+    post.save()
+    return post
+
+def get_date(string):
+    d = RE_DATE.match(string)
+    try:
+        date = datetime.date(*[int(i) for i in d.groups()])
+    except TypeError:
+        raise TypeError("Enter a date")
+    except AttributeError:
+        raise AttributeError("Enter date in a valid format YYYY-MM-DD")
+    if date < EARLIEST_DATE or date > datetime.date.today():
         raise ValueError("Date must be between Feb 1, 2001 and today")
     return date
 
-def get_str_date(YYYY, MM, DD):
-    return ("{:0>4}".format(YYYY), "{:0>2}".format(MM), "{:0>2}".format(DD))
-
 def get_datetime(string):
-    #"2018-11-04T10:18:29+0000"
-    if string == None:
-        return [2001, 1, 1, 0, 0, 0]
-    (d, ttz) = string.split('T')
-    (t, tz) = ttz.split('+')
-    a = []
-    [a.append(i) for i in d.split('-')]
-    [a.append(i) for i in t.split(':')]
-    return [int(i) for i in a]
+    d = RE_DATETIME.match(string)
+    if d:
+        return datetime.datetime(*[int(i) for i in d.groups()])
+    else:
+        return EARLIEST_DATETIME
 
 def cache(context):
     print("\nCached\n")
     _cache[context['post'].created] = context
+
+def uncache(date):
+    if date in _cache:
+        print("\nUncached\n")
+        _cache.pop(date)
 
 def get_from_cache(date):
     context = _cache.get(date)
@@ -181,17 +145,23 @@ def get_from_db(date):
     return context
 
 def get_new_data(date):
+    with urllib.request.urlopen(build_url(date, REG)) as resp:
+        page = resp.read().decode('utf-8')
+        post = process_post(page, date)
+
     with urllib.request.urlopen(build_url(date, API)) as resp:
         page = resp.read().decode('utf-8')
-        context = summarize(page, date)
+        context = process_cmts(page, date, post)
         print("\nNew entry\n")
         cache(context)
+
     return context 
 
 def delete_post(date):
     post = Post.objects.filter(created=date).first()
     if post is not None:
         post.delete()
+        uncache(date)
 
 # Create your views here.
 def home(request):
@@ -201,7 +171,9 @@ def home(request):
 def search(request):
     if request.method == 'GET':
         try:
-            date = get_valid_date(request)
+            date = get_date(request.GET.get('date'))
+        except AttributeError as empty_date:
+            return HttpResponse(empty_date)
         except ValueError as invalid_date:
             return HttpResponse(invalid_date)
 
