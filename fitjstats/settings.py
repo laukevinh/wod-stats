@@ -31,7 +31,6 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    'crawl.apps.CrawlConfig',
     'fitjstats.apps.FitjstatsConfig',
     'django.contrib.admin',
     'django.contrib.auth',
